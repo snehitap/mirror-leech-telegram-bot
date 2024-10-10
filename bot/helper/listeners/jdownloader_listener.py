@@ -53,18 +53,9 @@ async def _jd_listener():
                 intervals["jd"] = ""
                 break
             try:
-                await wait_for(
-                    retry_function(jdownloader.device.jd.version), timeout=10
-                )
+                await jdownloader.check_jdownloader_state()
             except:
-                is_connected = await jdownloader.jdconnect()
-                if not is_connected:
-                    LOGGER.error(jdownloader.error)
-                    continue
-                jdownloader.boot()
-                isDeviceConnected = await jdownloader.connectToDevice()
-                if not isDeviceConnected:
-                    continue
+                continue
             try:
                 packages = await jdownloader.device.downloads.query_packages(
                     [{"finished": True, "saveTo": True}]
@@ -85,13 +76,12 @@ async def _jd_listener():
                             for dl in all_packages
                             if dl["saveTo"].startswith(path)
                         ]
-                        if len(jd_downloads[d_gid]["ids"]) == 0:
-                            await remove_download(d_gid)
+                    if len(jd_downloads[d_gid]["ids"]) == 0:
+                        await remove_download(d_gid)
 
-            completed_packages = [
+            if completed_packages := [
                 pack["uuid"] for pack in packages if pack.get("finished", False)
-            ]
-            if completed_packages:
+            ]:
                 for d_gid, d_dict in list(jd_downloads.items()):
                     if d_dict["status"] == "down":
                         is_finished = all(
